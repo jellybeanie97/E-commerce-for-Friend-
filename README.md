@@ -1,6 +1,6 @@
 # Website Shop
 
-E-commerce website for Lumea, a small business selling beauty products.
+Building my friend's E-commerce website, Lumea, a small business selling beauty products.
 
 ## Tech Stack
 
