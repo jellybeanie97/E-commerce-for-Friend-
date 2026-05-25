@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
-import { LogOut, Settings, Heart } from "lucide-react"
+import { LogOut, Search } from "lucide-react"
 import Image from "next/image"
 import { useCart } from "@/lib/real-timeCart"
 
@@ -28,7 +28,7 @@ export default function Navbar()
                 <div className="flex items-center justify-between h-16 gap-8">
 
                     {/* Logo + Nav Tabs grouped together on the left side of the page. */}
-                    <div className="flex items-center gap-20">
+                    <div className="flex items-center gap-14">
                         <Link href="/" className="flex items-center">
                             <span className="text-2xl font-bold lumea-text-gradient font-heading">
                                 LUMEA
@@ -36,7 +36,7 @@ export default function Navbar()
                         </Link>
 
                     {/* Nav Links */}
-                        <div className="hidden md:flex items-center gap-6">
+                        <div className="hidden md:flex items-center gap-8">
                             <Link href="/" className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors">
                                 Home
                             </Link>
@@ -56,46 +56,55 @@ export default function Navbar()
                     <div className="flex items-center gap-4">
 
                         {/* Search Bar */}
-                        <div className="hidden md:flex items-center gap-2 bg-white/60 border border-lumea-rose-100 rounded-full px-4 py-2">
-                            {/* <Search size={}></Search>  finish this line */}
+                        <div className="hidden md:flex items-center gap-2 bg-white/60 border border-lumea-rose-100 rounded-full px-4 py-2 mr-6">
+                            <Search size={16} className="text-foreground/40" />
+                            <input
+                                type="text"
+                                placeholder="Search "
+                                className="bg-transparent text-sm outline-none w-40 placeholder:text-foreground/40"
+                            />
                         </div>
 
                         {session ? (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-4">
                                 {isAdmin && (
                                     <Link
                                         href="/admin"
                                         className="flex items-center gap-1 text-sm font-medium text-lumea-rose-600 hover:text-lumea-rose-700 transition-colors"
                                     >
-                                        <Settings size={16} />
-                                        Admin
+                                        <Image src="/icons/admin-alt.svg" alt="Admin" width={20} height={20} />
                                     </Link>
                                 )}
 
                                 {/* Shopping Cart Icon */}
-                                <Link href="/cart" className="relative">
-                                    <Image src="/icons/bags-shopping.svg" alt="Cart" width={24} height={24} />
-                                    {cartCount > 0 && (
-                                        <span className="absolute -top-2 -right-2 bg-lumea-rose-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                                            {cartCount}
-                                        </span>
-                                    )}
-                                </Link>
+                                <div className="flex items-center gap-2">
+                                    <Link href="/cart" className="relative">
+                                        <Image src="/icons/bags-shopping.svg" alt="Cart" width={24} height={24} />
+                                        {cartCount > 0 && (
+                                            <span className="absolute -top-2 -right-2 bg-lumea-rose-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                                {cartCount}
+                                            </span>
+                                        )}
+                                    </Link>
 
+                                    {/* Account */}
+                                    <Link href="/acount">
+                                        <Image src="/icons/user.svg" alt="Account" width={24} height={24} />
+                                    </Link>
 
+                                    {/* Wishlist Icon */}
+                                    <Link
+                                        href="/wishlist" className="relative text-foreground/70 hover:text-lumea-rose-600 transition-colors">
+                                        <Image src="/icons/heart.svg" alt="Heart" width={24} height={24} />
+                                    </Link>
+                                </div>
 
-                                {/* Wishlist Icon */}
-                                <Link
-                                    href="/wishlist" className="relative text-foreground/70 hover:text-lumea-rose-600 transition-colors">
-                                    <Image src="/icons/heart.svg" alt="Heart" width={24} height={24} />
-                                </Link>
-
-                                {/* User Account Profile */}
-                                <Link href="/account" className="text-foreground/70 hover:text-lumea-rose-600 transition-colors">
-                                    <Image src="/icons/admin-alt.svg" alt="Account" width={24} height={24} />
-                                </Link>
-
-                            </div>
+                                    {/* Greeting the LoggedIn User */}
+                                    <span className="text-sm font-medium text-foreground/70">
+                                        Hello, {user?.name?.split(" ")[0]}!
+                                    </span>
+                                </div>
+                            
                         ) : (
                             <div className="flex items-center gap-3">
                                 <Link
