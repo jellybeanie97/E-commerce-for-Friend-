@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Geist, Geist_Mono, Inter, Playfair_Display } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
+import AnnouncementBar from "@/components/layout/AnnouncementBar"
 import Navbar from "@/components/layout/Navbar"
 import Providers from "@/components/layout/Providers"
 
@@ -35,6 +36,7 @@ export default function RootLayout({
         >
             <body className="min-h-full flex flex-col">
                 <Providers>
+                    <AnnouncementBar />
                     <Navbar />
                     <main className="flex-1">
                         {children}
