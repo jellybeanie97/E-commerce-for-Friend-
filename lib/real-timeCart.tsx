@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect } from "react"
+import React, { createContext, useContext, useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 
 interface RealTimeCartType
@@ -14,41 +14,36 @@ const RealTimeCart = createContext<RealTimeCartType>({
     updatedCart: () => {},
 })
 
-export function ShoppingCartProvider({ children }: { children: React.ReactNode })
-{
+export function ShoppingCartProvider({ children }: { children: React.ReactNode }) {
     const { data: session } = useSession()
     const [cartCount, setCartCount] = useState(0)
+    const setCountRef = useRef(setCartCount)
 
-    const updatedCart = async () =>
-    {
-        if (!session) return setCartCount(0)
 
-        try
-        {
-            const res = await fetch("/api/cart/count")
-            if (res.ok)
-            {
-                const data = await res.json()
-                setCartCount(data.count)
-            }
+    useEffect(() => {
+        if (!session) {
+            setCountRef.current(0)
+            return
         }
-        catch (error)
-        {
-            console.error("CART_COUNT_ERROR:", error)
-        }
-    }
-
-    useEffect(() =>
-    {
-        updatedCart()
+        fetch("/api/cart/count")
+            .then((res) => res.ok ? res.json() : null)
+            .then((data) => { if (data) setCountRef.current(data.count) })
+            .catch((error) => console.error("CART_COUNT_ERROR:", error))
     }, [session])
+
+    const updatedCart = () => {
+        if (!session) return setCartCount(0)
+        fetch("/api/cart/count")
+            .then((res) => res.ok ? res.json() : null)
+            .then((data) => { if (data) setCartCount(data.count) })
+            .catch((error) => console.error("CART_COUNT_ERROR:", error))
+    }
 
     return (
         <RealTimeCart.Provider value={{ cartCount, updatedCart }}>
-            {children}
+            { children }
         </RealTimeCart.Provider>
     )
 }
 
 export const useCart = () => useContext(RealTimeCart)
-
