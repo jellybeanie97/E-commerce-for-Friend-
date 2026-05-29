@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useSession } from "next-auth/react"
+import { useWishlist } from "@/lib/wishlistContext"
 
-interface Product
-{
+interface Product {
     id: string
     name: string
     description: string | null
@@ -14,37 +15,57 @@ interface Product
     priceId: string | null
 }
 
-
-export default function ProductGridView()
-{
+export default function ProductGridView() {
     const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
+    const [wishlisted, setWishlisted] = useState<Record<string, boolean>>({})
+    const { data: session } = useSession()
+    const { showDialogue } = useWishlist()
 
-    useEffect(() =>
-    {
-        const fetchProducts = async () =>
-        {
-            try
-            {
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
                 const res = await fetch("/api/products")
                 const data = await res.json()
                 setProducts(data)
-            }
-            catch (error)
-            {
+            } catch (error) {
                 console.error("Failed to fetch products:", error)
-            }
-            finally
-            {
+            } finally {
                 setLoading(false)
             }
         }
-
         fetchProducts()
     }, [])
 
-    if (loading)
-    {
+    const handleWishlist = async (product: Product) => {
+        if (!session) {
+            showDialogue({ id: product.id, name: product.name, image: product.image }, false)
+            return
+        }
+
+        try {
+            if (wishlisted[product.id]) {
+                await fetch("/api/wishlist/remove", {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ productId: product.id }),
+                })
+                setWishlisted((prev) => ({ ...prev, [product.id]: false }))
+            } else {
+                await fetch("/api/wishlist/add", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ productId: product.id }),
+                })
+                setWishlisted((prev) => ({ ...prev, [product.id]: true }))
+                showDialogue({ id: product.id, name: product.name, image: product.image }, true)
+            }
+        } catch (error) {
+            console.error("WISHLIST_ERROR:", error)
+        }
+    }
+
+    if (loading) {
         return (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -67,7 +88,7 @@ export default function ProductGridView()
                 <div key={product.id} className="glass rounded-2xl overflow-hidden group hover:shadow-xl transition-all duration-300">
 
                     {/* Product Image */}
-                    <div className="relative aspect-square bg-linear-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
+                    <div className="relative aspect-square bg-gradient-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
                         {product.image ? (
                             <Image
                                 src={product.image}
@@ -80,14 +101,17 @@ export default function ProductGridView()
                         )}
 
                         {/* Wishlist Button */}
-                        <button className="absolute top-3 right-3 w-8 h-8 bg-white/95 rounded-full flex items-center justify-center hover:bg-white transition-colors">
+                        <button
+                            onClick={() => handleWishlist(product)}
+                            className="absolute top-3 right-3 w-8 h-8 bg-white/95 rounded-full flex items-center justify-center hover:bg-white transition-colors"
+                        >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="30"
+                                width="16"
+                                height="16"
                                 viewBox="0 0 24 24"
-                                className="heart-icon transition-all duration-200"
-                                fill="none"
+                                className="transition-all duration-200"
+                                fill={wishlisted[product.id] ? "#c81e6c" : "none"}
                                 stroke="#c81e6c"
                                 strokeWidth="2"
                                 strokeLinecap="round"
@@ -100,9 +124,7 @@ export default function ProductGridView()
 
                     {/* Product Info */}
                     <div className="p-4">
-                        <h3 className="font-heading text-lg font-bold mb-1">
-                            {product.name}
-                        </h3>
+                        <h3 className="font-heading text-lg font-bold mb-1">{product.name}</h3>
                         <p className="text-xs text-foreground/50 mb-3 line-clamp-2">
                             {product.description ?? "A luxurious Lumea Fragrance"}
                         </p>
@@ -122,6 +144,4 @@ export default function ProductGridView()
             ))}
         </div>
     )
-
 }
-
