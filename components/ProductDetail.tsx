@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { ChevronDown } from "lucide-react"
 import Image from "next/image"
@@ -13,6 +13,7 @@ interface Props {
     description: string
     price: number
     image: string | null
+    images?: string[]
     }
 }
 
@@ -34,18 +35,45 @@ const dropdownItems = [
 export default function ProductDetail({ product }: Props) {
     const [openDropdown, setOpenDropdown] = useState<string | null>(null)
     const [wishlisted, setWishlisted] = useState(false)
+    const [addedToBag, setAddedToBag] = useState(false)
+    const [activeThumb, setActiveThumb] = useState(0)
+    const [isZoomed, setIsZoomed] = useState(false)
+    const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50})
+    const imageRef = useRef<HTMLDivElement>(null)
     const { updatedCart } = useCart()
 
+    const images = product.images?.length
+        ? product.images
+        : product.image
+        ? [product.image, product.image, product.image, product.image]
+        : []
+
+    // Changes thumbnails every 3 seconds
+
+    useEffect(() => {
+        if (images.length <= 1) return
+        const interval = setInterval(() => {
+            setActiveThumb((prev) => (prev + 1) % Math.min(images.length, 4))
+        }, 3000)
+        return () => clearInterval(interval)
+    }, [images.length])
+
     const addToCart = async () => {
+        console.log("addToCart called", product.id)
         try {
             const res = await fetch("/api/cart/add", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ productId: product.id, quantity: 1}),
+                body: JSON.stringify({ productId: product.id, quantity: 1 }),
             })
+            console.log("Response status:", res.status)
+            const data = await res.json()
+            console.log("Response data:", data)
             if (res.ok)
             {
                 updatedCart()   // this will refresh the cart count located in the navbar.
+                setAddedToBag(true)
+                setTimeout(() => setAddedToBag(false), 2000)
             }
         }   catch (error)
             {
@@ -53,8 +81,18 @@ export default function ProductDetail({ product }: Props) {
             }
     }
 
+    const handleMouseCursor = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!imageRef.current) return
+        const rectangle = imageRef.current.getBoundingClientRect()
+        const x = ((e.clientX - rectangle.left) / rectangle.width) * 100
+        const y = ((e.clientY - rectangle.top) / rectangle.height) * 100
+        setZoomPosition({ x, y })
+    }
+
     const toggle = (label: string) =>
         setOpenDropdown(openDropdown === label ? null : label)
+
+    const currentImage = images[activeThumb] ?? product.image
 
     return (
         <div className="min-h-screen px-6 py-8 max-w-5xl mx-auto">
@@ -71,49 +109,65 @@ export default function ProductDetail({ product }: Props) {
 
             {/* Left - Images */}
             <div className="flex flex-col gap-4 flex-1">
-                {/* Main Image */}
-                <div className="relative aspect-square rounded-2xl overflow-hidden glass">
-                    {product.image ? (
-                        <Image
-                            src={product.image}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
-                            <span className="text-8xl">🌸</span>
-                        </div>
-                    )}
-                </div>
+
+                {/* Main Image with Zoom feature */}
+                <div 
+                    ref={imageRef}
+                    className="relative aspect-square rounded-2xl overflow-hidden glass"
+                    onMouseEnter={() => setIsZoomed(true)}
+                    onMouseLeave={() => setIsZoomed(false)}
+                    onMouseMove={handleMouseCursor}
+                    >
+                        {currentImage ? (
+                                <Image
+                                    src={currentImage}
+                                    alt={product.name}
+                                    fill
+                                    className="object-cover transition-transform duration-300"
+                                    style={{
+                                        transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                                        transform: isZoomed ? "scale(1.6)" : "scale(1)",
+                                    }}
+                                />
+                        ) : (
+                            <div className="w-full h-full bg-linear-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
+                                <span className="text-8xl">🌸</span>
+                            </div>
+                        )}
+                    </div>
 
                 {/* Thumbnails */}
                 <div className="grid grid-cols-4 gap-3">
                     {[0, 1, 2, 3].map((i) => (
                         <div
                             key={i}
-                            className="aspect-square rounded-xl overflow-hidden glass cursor-pointer hover:ring-2 hover:ring-lumea-rose-400 transition-all"
-                        >
-                            {product.image ? (
-                                <Image
-                                    src ={product.image}
-                                    alt={`${product.name} view ${i + 1}`}
-                                    width={120}
-                                    height={120}
-                                    className="object-cover w-full h-full"
-                                />
-                            ) : (
-                                <div className="w-full h-full bg-linear-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
-                                    <span className="text-2xl">🌸</span>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                            onClick={() => setActiveThumb(i)}
+                            className={`aspect-square rounded-xl overflow-hidden glass cursor-pointer transition-all ${
+                                    activeThumb === i
+                                        ? "ring-2 ring-lumea-rose-500"
+                                        : "hover:ring-2 hover:ring-lumea-rose-400"
+                                }`}
+                            >
+                                {images[i] ? (
+                                    <Image
+                                        src ={images[i]}
+                                        alt={`${product.name} view ${i + 1}`}
+                                        width={120}
+                                        height={120}
+                                        className="object-cover w-full h-full"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-linear-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
+                                        <span className="text-2xl">🌸</span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
 
-            {/* Right - Info */}
-            <div className="flex flex-col gap-4 flex-1">
+                {/* Right - Info */}
+                <div className="flex flex-col gap-4 flex-1">
 
                 {/* Name & Price */}
                 <div>
@@ -127,23 +181,32 @@ export default function ProductDetail({ product }: Props) {
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => addToCart()}
-                        className="flex-1 bg-lumea-rose-500 hover:bg-lumea-rose-600 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
+                        className={`flex-1 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 ${
+                                addedToBag
+                                    ? "bg-green-500 scale-95"
+                                    : "bg-lumea-rose-500 hover:bg-lumea-rose-600"
+                            }`}
                         >
-                            Add to Bag
+                            {addedToBag ? "✓ Added to Bag!" : "Add to Bag"}
                         </button>
                         <button
                             onClick={() => setWishlisted(!wishlisted)}
-                            className="w-12 h-12 rounded-xl glass flex items-center justify-center hover:bg-lumea-rose-50 transition-colors"
+                            className="w-12 h-12 rounded-xl glass flex items-center justify-center hover:bg-lumea-rose-80 transition-colors"
                         >
-                            <Image
-                                src="/icons/heart.svg"
-                                alt="Wishlist"
-                                className={`w-5 h-5 transition-all ${
-                                wishlisted
-                                    ? "filter-[invert(40%)_sepia(80%)_saturate(400%)_hue-rotate(300deg)]"
-                                    : "opacity-40"
-                            }`}
-                            />
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="30"
+                                viewBox="0 0 24 24"
+                                className="heart-icon transition-all duration-200"
+                                fill="none"
+                                stroke="#c81e6c"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                            </svg>
                         </button>
                     </div>
 

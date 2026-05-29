@@ -67,7 +67,7 @@ export default function ProductGridView()
                 <div key={product.id} className="glass rounded-2xl overflow-hidden group hover:shadow-xl transition-all duration-300">
 
                     {/* Product Image */}
-                    <div className="relative aspect-square bg-gradient-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
+                    <div className="relative aspect-square bg-linear-to-br from-lumea-rose-100 to-lumea-rose-200 flex items-center justify-center">
                         {product.image ? (
                             <Image
                                 src={product.image}
